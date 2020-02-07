@@ -1,0 +1,157 @@
+---
+title: "530 project--RF & KNN"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#1.library package-randomForest
+```{r}
+setwd("~/2019 spring/DSO 530 /project/random forest")
+library(randomForest)
+```
+
+#2.Load in data
+```{r}
+train=read.csv('var34train.csv')
+test=read.csv('var34test.csv')
+```
+
+#3.Observe data: 12 int(categorical)  23 numerical
+```{r}
+#dim(train)
+train$HasDetections<-as.factor(train$HasDetections)
+test$HasDetections<-as.factor(test$HasDetections)
+table(train$HasDetections)
+```
+
+#4. Set seed and build model
+```{r}
+set.seed(1)  
+#rf<-randomForest(HasDetections~.,data=train)  # takes long time to run
+```
+
+#5.Performance of model
+```{r}
+print(rf)
+```
+##Out of bag(OOB) error:
+For each bootstrap iteration and related tree, prediction error using data not in bootstrap sample(also called out of bag or OOB data) is estimated.  
+Classification: Accuracy  
+Regression: R-sq & RMSE  
+
+#6. prediction & confusion matrix--train data
+```{r}
+#install.packages("caret")
+library(caret)
+p1<-predict(rf,train)
+```
+```{r}
+head(p1)
+head(train$HasDetections)
+```
+```{r}
+#install.packages('e1071')
+confusionMatrix(p1,train$HasDetections,positive='1')
+
+```
+#7. Preediction & Confusion Matrix --test data
+
+```{r}
+p2<-predict(rf,test)
+confusionMatrix(p2,test$HasDetections,positive='1')
+```
+
+#8.Error rate of random forest
+```{r}
+plot(rf)
+```
+after 300 it goes down slowly. 
+
+#9.Tune mtry
+improve : the relative improvement in OOB error must be by this much for the search to continue (keep it small)
+```{r}
+t<-tuneRF(train[,-35],train[,35],stepFactor = 0.5 ,plot = TRUE,
+       ntreeTry = 500, trace = TRUE, improve = 0.05)
+```
+best # of mtry is  5 
+
+**change stepFactor to 1 (too big)**
+```{r}
+t2<-tuneRF(train[,-35],train[,35],stepFactor = 1 ,plot = TRUE,
+       ntreeTry = 500, trace = TRUE, improve = 0.05)
+```
+**change ntreeTry to 300 (not much different)**
+```{r}
+t<-tuneRF(train[,-35],train[,35],stepFactor = 0.5 ,plot = TRUE,
+       ntreeTry = 300, trace = TRUE, improve = 0.05)
+```
+
+#10.Select optimized parameters in random forest model
+```{r}
+rf_opt<-randomForest(HasDetections~.,data=train,ntree = 300, mtry = 5, importance = TRUE, proximity=TRUE)
+print(rf_opt)
+```
+
+#11 look at the error
+training error
+```{r}
+p1_opt <-predict(rf_opt,train)
+comfusionMatrix(p1_opt,train$HasDetections)
+```
+
+
+testing error
+```{r}
+p2_opt<-predict(rf_opt,test)
+confusionMatrix(p2_opt,test$HasDetections)
+```
+
+
+#12 Plot nodes for trees
+```{r}
+hist(treesize(rf_opt),main='# of Nodes for the trees',col='green')
+
+```
+
+#13 Variable importance
+```{r}
+varImpPlot(rf_opt,sort = T, n.var=10,main='Top 10 - variable importance')
+importance(rf_opt)
+```
+
+
+---
+KNN
+```{r}
+dim(train)
+```
+#1.Fit KNN model
+one model run 5 minute?
+```{r}
+library(class)
+set.seed(1)
+train.X=train[,1:34]
+test.X=test[,1:34]
+train.Y=train[,35]
+test.Y=test[,35]
+pred=knn(train.X,test.X,train.Y,k=5)
+table(pred, test.Y)
+mean(pred==test.Y)
+
+```
+
+**Look for best K** 
+```{r}
+knn_test_error = c();
+for ( i in 5:50 ) {
+  knn.pred = knn(train.X, test.X, train.Y, k = i)
+  knn_test_error[i] = mean(knn.pred != test.Y)
+  }
+plot(x=1:500, y=knn_test_error, xlab = "K", ylab = "Test Error Rate (%)")
+```
+
+
+
+

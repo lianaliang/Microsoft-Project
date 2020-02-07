@@ -1,0 +1,148 @@
+---
+title: "Microsoft"
+author: "Hadeer Hammad"
+date: "April 14, 2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(data.table)
+library(ISLR)
+library(dplyr)
+library(ggplot2)
+library(MASS)
+```
+
+```{r}
+train <- fread("train.csv")
+test <- fread("test.csv")
+
+train$HasDetections <- as.factor(train$HasDetections)
+test$HasDetections <- as.factor(test$HasDetections)
+```
+
+
+Logistic Regression
+```{r}
+glm.fit = glm(HasDetections~., 
+              data = train, 
+              family = binomial)
+
+summary(glm.fit)
+
+```
+
+```{r}
+# The probability values yielded by the model correspond # to the probability of getting infected by Malware
+
+contrasts(train$HasDetections) 
+summary(train$HasDetections)
+
+```
+
+```{r}
+# Applying the model on the testing set
+glm.probs = predict(glm.fit, test, type = "response")
+
+```
+
+```{r}
+# A probability higher than 0.5 is classified as 1
+# And probability lower than 0.5 = 0
+glm.pred = rep(0, nrow(test))
+glm.pred[glm.probs >= 0.5] = 1
+```
+
+```{r}
+# Confusion Matrix
+table(glm.pred, test$HasDetections)
+
+# Overall Classification error
+mean(glm.pred != test$HasDetections)
+```
+
+
+```{r}
+# Trying different threshold (0.4):
+
+glm.pred = rep(0, nrow(test))
+glm.pred[glm.probs >= 0.4] = 1
+
+# Confusion Matrix
+table(glm.pred, test$HasDetections)
+
+# Overall Classification error
+mean(glm.pred != test$HasDetections) 
+
+```
+
+```{r}
+# Trying different threshold (0.3):
+
+glm.pred = rep(0, nrow(test))
+glm.pred[glm.probs >= 0.25] = 1
+
+# Confusion Matrix
+table(glm.pred, test$HasDetections)
+
+# Overall Classification error
+mean(glm.pred != test$HasDetections)
+```
+
+LDA
+```{r}
+
+summary(test$HasDetections)
+
+# Fitting LDA model
+lda.fit = lda(HasDetections~., data = train)
+lda.fit
+
+# Predicting the testing set
+lda.pred = predict(lda.fit, test)
+lda.class = lda.pred$class
+
+# Confusion Matrix
+table(lda.class, test$HasDetections)
+
+# Overall Classification Error
+mean(lda.class != test$HasDetections)
+
+```
+
+
+```{r}
+partimat(HasDetections~CountryIdentifier+
+           CityIdentifier,
+       data=test, method = "lda")
+
+```
+
+QDA
+```{r}
+# Fitting QDA model
+qda.fit = qda(HasDetections~., data = train)
+qda.fit
+
+# Applying QDA on the testing set
+qda.class = predict(qda.fit, test)$class
+
+# Confusion Matrix
+table(qda.class, test$HasDetections)
+
+# Overall Classification Error
+mean(qda.class != test$HasDetections)
+
+```
+
+
+
+
+
+
+
+
